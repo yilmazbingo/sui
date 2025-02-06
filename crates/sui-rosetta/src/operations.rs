@@ -560,7 +560,7 @@ impl Operations {
     }
 
     /// Checks to see if transferObjects is used on GasCoin
-    fn is_gascoin_transfer(tx: SuiTransactionBlockKind) -> bool {
+    fn is_gascoin_transfer(tx: &SuiTransactionBlockKind) -> bool {
         match tx {
             SuiTransactionBlockKind::ProgrammableTransaction(pt) => {
                 let SuiProgrammableTransactionBlock {
@@ -625,11 +625,12 @@ impl Operations {
     /// 2) balances of previous and new gas owners need to be adjusted for the gas
     fn process_gascoin_transfer(
         coin_change_operations: &mut impl Iterator<Item = Operation>,
-        tx: SuiTransactionBlockKind,
-        prev_gas_owner: SuiAddress,
+        data: SuiTransactionBlockData,
         new_gas_owner: SuiAddress,
         gas_used: i128,
     ) -> Result<Vec<Operation>, anyhow::Error> {
+        let tx = data.transaction();
+        let prev_gas_owner = data.gas_data().owner;
         let mut operations = vec![];
         if Self::is_gascoin_transfer(tx) && prev_gas_owner != new_gas_owner {
             operations = coin_change_operations.collect();
@@ -791,8 +792,7 @@ impl Operations {
         // and convert BalanceChange to PaySui when GasCoin is transferred
         let gascoin_transfer_operations = Self::process_gascoin_transfer(
             &mut coin_change_operations,
-            tx.data.transaction().clone(),
-            tx.data.gas_data().owner,
+            tx.data,
             gas_owner,
             gas_used,
         )?;
