@@ -527,7 +527,7 @@ impl Operations {
     fn process_balance_change(
         gas_owner: SuiAddress,
         gas_used: i128,
-        balance_changes: &Vec<(BalanceChange, Currency)>,
+        balance_changes: &[(BalanceChange, Currency)],
         status: Option<OperationStatus>,
         balances: HashMap<(SuiAddress, Currency), i128>,
     ) -> impl Iterator<Item = Operation> {
@@ -608,7 +608,7 @@ impl Operations {
     /// Compare initial balance_changes to new_operations and make sure
     /// the balance-changes stay the same after updating the operations
     fn validate_operations(
-        initial_balance_changes: &Vec<(BalanceChange, Currency)>,
+        initial_balance_changes: &[(BalanceChange, Currency)],
         new_operations: &Vec<Operation>,
     ) -> Result<(), anyhow::Error> {
         let balances: HashMap<(SuiAddress, Currency), i128> = HashMap::new();
@@ -634,6 +634,8 @@ impl Operations {
                         .unwrap_or(0)
                         + value;
                     new_balances.insert((account.address, currency), balance_change);
+                } else {
+                    return Err(anyhow!("Missing account for a balance-change"));
                 }
             }
         }
@@ -666,7 +668,7 @@ impl Operations {
         data: SuiTransactionBlockData,
         new_gas_owner: SuiAddress,
         gas_used: i128,
-        initial_balance_changes: &Vec<(BalanceChange, Currency)>,
+        initial_balance_changes: &[(BalanceChange, Currency)],
     ) -> Result<Vec<Operation>, anyhow::Error> {
         let tx = data.transaction();
         let prev_gas_owner = data.gas_data().owner;

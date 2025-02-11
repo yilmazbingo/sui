@@ -34,9 +34,9 @@ use sui_types::transaction::{
 };
 use sui_types::{Identifier, SUI_FRAMEWORK_PACKAGE_ID};
 
+use crate::rosetta_client::{start_rosetta_test_server, RosettaEndpoint};
 use test_cluster::TestClusterBuilder;
 use test_coin_utils::{init_package, mint};
-use crate::rosetta_client::{start_rosetta_test_server, RosettaEndpoint};
 
 #[tokio::test]
 async fn test_custom_coin_balance() {
