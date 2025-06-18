@@ -404,6 +404,7 @@ pub enum EndOfEpochTransactionKind {
     DenyListStateCreate,
     BridgeStateCreate(ChainIdentifier),
     BridgeCommitteeInit(SequenceNumber),
+    CoinMetadataRegistryCreate,
     StoreExecutionTimeObservations(StoredExecutionTimeObservations),
     AccumulatorRootCreate,
 }
@@ -465,6 +466,10 @@ impl EndOfEpochTransactionKind {
         Self::BridgeCommitteeInit(bridge_shared_version)
     }
 
+    pub fn init_coin_metadata_registry() -> Self {
+        Self::CoinMetadataRegistryCreate
+    }
+
     pub fn new_store_execution_time_observations(
         estimates: StoredExecutionTimeObservations,
     ) -> Self {
@@ -503,6 +508,8 @@ impl EndOfEpochTransactionKind {
                     mutable: true,
                 },
             ],
+            // TODO: add create args
+            Self::CoinMetadataRegistryCreate => vec![],
             Self::StoreExecutionTimeObservations(_) => {
                 vec![InputObjectKind::SharedMoveObject {
                     id: SUI_SYSTEM_STATE_OBJECT_ID,
@@ -542,6 +549,8 @@ impl EndOfEpochTransactionKind {
                 ]
                 .into_iter(),
             ),
+            // TODO: add create args
+            Self::CoinMetadataRegistryCreate => Either::Right(iter::empty()),
             Self::StoreExecutionTimeObservations(_) => {
                 Either::Left(vec![SharedInputObject::SUI_SYSTEM_OBJ].into_iter())
             }
@@ -589,6 +598,13 @@ impl EndOfEpochTransactionKind {
                 if !config.should_try_to_finalize_bridge_committee() {
                     return Err(UserInputError::Unsupported(
                         "should not try to finalize committee yet".to_string(),
+                    ));
+                }
+            }
+            Self::CoinMetadataRegistryCreate => {
+                if !config.enable_coin_metadata_registry() {
+                    return Err(UserInputError::Unsupported(
+                        "coin metadata registry not enabled".to_string(),
                     ));
                 }
             }
