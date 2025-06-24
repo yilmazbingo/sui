@@ -19,7 +19,7 @@ use tracing::{info, warn};
 
 /// The minimum and maximum protocol versions supported by this build.
 const MIN_PROTOCOL_VERSION: u64 = 1;
-const MAX_PROTOCOL_VERSION: u64 = 86;
+const MAX_PROTOCOL_VERSION: u64 = 87;
 
 // Record history of protocol version allocations here:
 //
@@ -3748,9 +3748,6 @@ impl ProtocolConfig {
                         );
                 }
                 86 => {
-                    if chain != Chain::Mainnet && chain != Chain::Testnet {
-                        cfg.feature_flags.enable_accumulators = true;
-                    }
                     cfg.feature_flags.type_tags_in_object_runtime = true;
                     cfg.max_move_enum_variants = Some(move_core_types::VARIANT_COUNT_MAX);
 
@@ -3774,6 +3771,9 @@ impl ProtocolConfig {
                     if chain != Chain::Mainnet {
                         cfg.feature_flags.enable_party_transfer = true;
                     }
+                }
+                87 => {
+                    // empty version for framework changes
                 }
                 // Use this template when making changes:
                 //
@@ -3979,6 +3979,10 @@ impl ProtocolConfig {
     pub fn set_include_epoch_stable_sequence_number_in_effects_for_testing(&mut self, val: bool) {
         self.feature_flags
             .include_epoch_stable_sequence_number_in_effects = val;
+    }
+
+    pub fn set_enable_accumulators_for_testing(&mut self, val: bool) {
+        self.feature_flags.enable_accumulators = val;
     }
 }
 
