@@ -67,10 +67,7 @@ public struct CoinData<phantom T> has key, store {
     extra_fields: VecMap<String, ExtraField>,
 }
 
-/// Supply state of a coin type, which can be fixed, fixed with override,
-/// or not fixed. This enables legacy coins that technically have a fixed supply
-/// to be registered as fixed supply coins, while allowing new coins to have a
-/// clear supply state where the registry stores the supply object itself.
+/// Supply state of a coin type, which can be fixed or unknown.
 public enum SupplyState<phantom T> has store {
     Fixed(Supply<T>),
     Unknown,
@@ -327,7 +324,7 @@ public(package) fun create_cap<T>(data: &mut CoinData<T>, ctx: &mut TxContext): 
 
 #[allow(unused_function)]
 /// Create and share the singleton Registry -- this function is
-/// called exactly once, during genesis.
+/// called exactly once, during the upgrade epoch.
 fun create(ctx: &TxContext) {
     assert!(ctx.sender() == @0x0, ENotSystemAddress);
 
