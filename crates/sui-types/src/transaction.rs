@@ -406,7 +406,7 @@ pub enum EndOfEpochTransactionKind {
     BridgeCommitteeInit(SequenceNumber),
     StoreExecutionTimeObservations(StoredExecutionTimeObservations),
     AccumulatorRootCreate,
-    CoinMetadataRegistryCreate,
+    CoinRegistryCreate,
 }
 
 impl EndOfEpochTransactionKind {
@@ -454,8 +454,8 @@ impl EndOfEpochTransactionKind {
         Self::AccumulatorRootCreate
     }
 
-    pub fn init_coin_metadata_registry() -> Self {
-        Self::CoinMetadataRegistryCreate
+    pub fn new_coin_registry_create() -> Self {
+        Self::CoinRegistryCreate
     }
 
     pub fn new_deny_list_state_create() -> Self {
@@ -516,7 +516,7 @@ impl EndOfEpochTransactionKind {
                 }]
             }
             Self::AccumulatorRootCreate => vec![],
-            Self::CoinMetadataRegistryCreate => vec![],
+            Self::CoinRegistryCreate => vec![],
         }
     }
 
@@ -552,7 +552,7 @@ impl EndOfEpochTransactionKind {
                 Either::Left(vec![SharedInputObject::SUI_SYSTEM_OBJ].into_iter())
             }
             Self::AccumulatorRootCreate => Either::Right(iter::empty()),
-            Self::CoinMetadataRegistryCreate => Either::Right(iter::empty()),
+            Self::CoinRegistryCreate => Either::Right(iter::empty()),
         }
     }
 
@@ -616,10 +616,10 @@ impl EndOfEpochTransactionKind {
                     ));
                 }
             }
-            Self::CoinMetadataRegistryCreate => {
-                if !config.enable_coin_metadata_registry() {
+            Self::CoinRegistryCreate => {
+                if !config.enable_coin_registry() {
                     return Err(UserInputError::Unsupported(
-                        "coin metadata registry not enabled".to_string(),
+                        "coin registry not enabled".to_string(),
                     ));
                 }
             }

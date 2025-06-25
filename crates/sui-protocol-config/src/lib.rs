@@ -717,9 +717,9 @@ struct FeatureFlags {
     #[serde(skip_serializing_if = "is_false")]
     enable_accumulators: bool,
 
-    // Enable coin metadata registry protocol
+    // Enable coin registry protocol
     #[serde(skip_serializing_if = "is_false")]
-    enable_coin_metadata_registry: bool,
+    enable_coin_registry: bool,
 
     // Enable statically type checked ptb execution
     #[serde(skip_serializing_if = "is_false")]
@@ -1815,8 +1815,8 @@ impl ProtocolConfig {
         self.feature_flags.enable_accumulators
     }
 
-    pub fn enable_coin_metadata_registry(&self) -> bool {
-        self.feature_flags.enable_coin_metadata_registry
+    pub fn enable_coin_registry(&self) -> bool {
+        self.feature_flags.enable_coin_registry
     }
 
     pub fn enable_coin_deny_list_v2(&self) -> bool {
@@ -3768,7 +3768,7 @@ impl ProtocolConfig {
                     }
                 }
                 87 => {
-                    cfg.feature_flags.enable_coin_metadata_registry = true;
+                    cfg.feature_flags.enable_coin_registry = true;
                 }
                 // Use this template when making changes:
                 //

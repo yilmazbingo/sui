@@ -29,7 +29,7 @@ use sui_types::{
     object::Object,
 };
 use sui_types::{
-    SUI_BRIDGE_OBJECT_ID, SUI_COIN_METADATA_REGISTRY_OBJECT_ID, SUI_RANDOMNESS_STATE_OBJECT_ID,
+    SUI_BRIDGE_OBJECT_ID, SUI_COIN_REGISTRY_OBJECT_ID, SUI_RANDOMNESS_STATE_OBJECT_ID,
 };
 use tracing::trace;
 
@@ -338,9 +338,9 @@ impl UnsignedGenesis {
         self.objects().get_object(&SUI_BRIDGE_OBJECT_ID).is_some()
     }
 
-    pub fn has_coin_metadata_registry_object(&self) -> bool {
+    pub fn has_coin_registry_object(&self) -> bool {
         self.objects()
-            .get_object(&SUI_COIN_METADATA_REGISTRY_OBJECT_ID)
+            .get_object(&SUI_COIN_REGISTRY_OBJECT_ID)
             .is_some()
     }
 
