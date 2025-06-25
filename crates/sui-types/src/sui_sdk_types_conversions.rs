@@ -562,7 +562,7 @@ impl From<UnchangedSharedKind> for crate::effects::UnchangedSharedKind {
             UnchangedSharedKind::Canceled { version } => Self::Cancelled(version.into()),
             UnchangedSharedKind::PerEpochConfig => Self::PerEpochConfig,
             UnchangedSharedKind::PerEpochConfigWithSequenceNumber { version: _ } => {
-                Self::PerEpochConfig
+                unreachable!("TODO fill this in when we add per epoch stable sequence numbers on the sui side")
             }
         }
     }

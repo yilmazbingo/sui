@@ -699,9 +699,8 @@ impl From<sui_sdk_types::UnchangedSharedObject> for super::UnchangedSharedObject
                 UnchangedSharedObjectKind::Canceled
             }
             PerEpochConfig => UnchangedSharedObjectKind::PerEpochConfig,
-            PerEpochConfigWithSequenceNumber { version } => {
-                message.version = Some(version);
-                UnchangedSharedObjectKind::PerEpochConfig
+            PerEpochConfigWithSequenceNumber { version: _ } => {
+                unreachable!("TODO fill this in when we add per epoch stable sequence numbers on the sui side")
             }
         };
 
