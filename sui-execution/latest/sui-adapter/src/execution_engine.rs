@@ -17,9 +17,7 @@ mod checked {
         BALANCE_CREATE_REWARDS_FUNCTION_NAME, BALANCE_DESTROY_REBATES_FUNCTION_NAME,
         BALANCE_MODULE_NAME,
     };
-    use sui_types::coin_metadata_registry::{
-        COIN_METADATA_REGISTRY_CREATE_FUNCTION_NAME, COIN_METADATA_REGISTRY_MODULE_NAME,
-    };
+    use sui_types::coin_registry::{COIN_REGISTRY_CREATE_FUNCTION_NAME, COIN_REGISTRY_MODULE_NAME};
     use sui_types::gas_coin::GAS;
     use sui_types::messages_checkpoint::CheckpointTimestamp;
     use sui_types::metrics::LimitsMetrics;
@@ -30,8 +28,8 @@ mod checked {
         RANDOMNESS_STATE_UPDATE_FUNCTION_NAME,
     };
     use sui_types::{
-        BRIDGE_ADDRESS, SUI_BRIDGE_OBJECT_ID, SUI_COIN_METADATA_REGISTRY_ADDRESS,
-        SUI_COIN_METADATA_REGISTRY_OBJECT_ID, SUI_RANDOMNESS_STATE_OBJECT_ID,
+        BRIDGE_ADDRESS, SUI_BRIDGE_OBJECT_ID, SUI_COIN_REGISTRY_ADDRESS,
+        SUI_COIN_REGISTRY_OBJECT_ID, SUI_RANDOMNESS_STATE_OBJECT_ID,
     };
 
     use tracing::{info, instrument, trace, warn};
@@ -782,9 +780,9 @@ mod checked {
                             assert!(protocol_config.enable_accumulators());
                             builder = setup_accumulator_root_create(builder);
                         }
-                        EndOfEpochTransactionKind::CoinMetadataRegistryCreate => {
-                            assert!(protocol_config.enable_coin_metadata_registry());
-                            builder = setup_coin_metadata_registry_create(builder);
+                        EndOfEpochTransactionKind::CoinRegistryCreate => {
+                            assert!(protocol_config.enable_coin_registry());
+                            builder = setup_coin_registry_create(builder);
                         }
                     }
                 }
@@ -1454,19 +1452,19 @@ mod checked {
         builder
     }
 
-    fn setup_coin_metadata_registry_create(
+    fn setup_coin_registry_create(
         mut builder: ProgrammableTransactionBuilder,
     ) -> ProgrammableTransactionBuilder {
         let registry_uid = builder
             .input(CallArg::Pure(
-                UID::new(SUI_COIN_METADATA_REGISTRY_OBJECT_ID).to_bcs_bytes(),
+                UID::new(SUI_COIN_REGISTRY_OBJECT_ID).to_bcs_bytes(),
             ))
             .expect("Unable to create Bridge object UID!");
 
         builder.programmable_move_call(
-            SUI_COIN_METADATA_REGISTRY_ADDRESS.into(),
-            COIN_METADATA_REGISTRY_MODULE_NAME.to_owned(),
-            COIN_METADATA_REGISTRY_CREATE_FUNCTION_NAME.to_owned(),
+            SUI_COIN_REGISTRY_ADDRESS.into(),
+            COIN_REGISTRY_MODULE_NAME.to_owned(),
+            COIN_REGISTRY_CREATE_FUNCTION_NAME.to_owned(),
             vec![],
             vec![registry_uid],
         );

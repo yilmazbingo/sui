@@ -455,7 +455,7 @@ EndOfEpochTransactionKind:
     8:
       AccumulatorRootCreate: UNIT
     9:
-      CoinMetadataRegistryCreate: UNIT
+      CoinRegistryCreate: UNIT
 Event:
   STRUCT:
     - package_id:

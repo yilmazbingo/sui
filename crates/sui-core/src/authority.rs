@@ -5069,24 +5069,21 @@ impl AuthorityState {
     }
 
     #[instrument(level = "debug", skip_all)]
-    fn create_coin_metadata_registry_tx(
+    fn create_coin_registry_tx(
         &self,
         epoch_store: &Arc<AuthorityPerEpochStore>,
     ) -> Option<EndOfEpochTransactionKind> {
-        if !epoch_store
-            .protocol_config()
-            .enable_coin_metadata_registry()
-        {
-            info!("coin metadata registry not enabled");
+        if !epoch_store.protocol_config().enable_coin_registry() {
+            info!("coin registry not enabled");
             return None;
         }
 
-        if epoch_store.accumulator_root_exists() {
+        if epoch_store.coin_registry_exists() {
             return None;
         }
 
-        let tx = EndOfEpochTransactionKind::new_accumulator_root_create();
-        info!("Creating AccumulatorRootCreate tx");
+        let tx = EndOfEpochTransactionKind::new_coin_registry_create();
+        info!("Creating CoinRegistry Create tx");
         Some(tx)
     }
 

@@ -692,8 +692,8 @@ mod checked {
                         EndOfEpochTransactionKind::AccumulatorRootCreate => {
                             panic!("EndOfEpochTransactionKind::AccumulatorRootCreate should not exist in v2");
                         }
-                        EndOfEpochTransactionKind::CoinMetadataRegistryCreate => {
-                            panic!("CoinMetadataRegistryCreate::CoinMetadataRegistryCreate should not exist in v2");
+                        EndOfEpochTransactionKind::CoinRegistryCreate => {
+                            panic!("CoinRegistryCreate::CoinRegistryCreate should not exist in v2");
                         }
                     }
                 }

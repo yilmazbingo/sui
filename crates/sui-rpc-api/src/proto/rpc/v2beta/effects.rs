@@ -699,6 +699,10 @@ impl From<sui_sdk_types::UnchangedSharedObject> for super::UnchangedSharedObject
                 UnchangedSharedObjectKind::Canceled
             }
             PerEpochConfig => UnchangedSharedObjectKind::PerEpochConfig,
+            PerEpochConfigWithSequenceNumber { version } => {
+                message.version = Some(version);
+                UnchangedSharedObjectKind::PerEpochConfig
+            }
         };
 
         message.set_kind(kind);

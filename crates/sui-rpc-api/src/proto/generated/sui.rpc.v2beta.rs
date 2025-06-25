@@ -3364,7 +3364,7 @@ pub mod end_of_epoch_transaction_kind {
         AccumulatorRootCreate(()),
         /// Create CoinMetadataRegistry object.
         #[prost(message, tag = "206")]
-        CoinMetadataRegistryCreate(()),
+        CoinRegistryCreate(()),
     }
 }
 /// Expire old JWKs.
