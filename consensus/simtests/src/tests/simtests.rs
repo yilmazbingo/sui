@@ -124,9 +124,9 @@ mod test {
         );
     }
 
-    // Tests the fast path transactions. It produces a defined number of transactions and it randomizes the outcome (accept or reject). Then the nodes
-    // are voting on the rejections with priority in order to force the transactions to be rejected. The rest should get accepted. The rest is verified
-    // based on the commit output.
+    // Tests the fastpath transactions with randomized votes. The test creates a fixed number of transactions,
+    // sends them to random authorities, and randomizes votes on them (accept or reject). The output is verified
+    // by comparing commits across validators and ensuring they are consistent.
     #[sim_test(config = "test_config()")]
     async fn test_committee_fast_path() {
         telemetry_subscribers::init_for_testing();
@@ -134,9 +134,9 @@ mod test {
         DBMetrics::init(RegistryService::new(db_registry));
 
         const NUM_OF_AUTHORITIES: usize = 10;
-        const REJECTION_PROBABILITY: f64 = 0.35;
-        const NUM_TRANSACTIONS: u16 = 5000;
-        const TRANSACTIONS_BATCH_SIZE: u16 = 5;
+        const REJECTION_PROBABILITY: f64 = 0.2;
+        const NUM_TRANSACTIONS: u16 = 10000;
+        const MAX_TRANSACTIONS_BATCH_SIZE: u16 = 10;
 
         let (committee, keypairs) = local_committee_and_keys(0, [1; NUM_OF_AUTHORITIES].to_vec());
         let protocol_config = ProtocolConfig::get_for_max_version_UNSAFE();
@@ -167,10 +167,7 @@ mod test {
                 for (index, transaction) in batch.iter().enumerate() {
                     let rejected = rand::thread_rng().gen_bool(REJECTION_PROBABILITY);
                     if rejected {
-                        tracing::info!(
-                            "Rejecting transaction {index} and digest {:?}",
-                            transaction[0]
-                        );
+                        tracing::trace!("Rejecting transaction {index}");
                         rejected_indices.push(index as TransactionIndex);
                     }
                 }
@@ -180,8 +177,8 @@ mod test {
         }
 
         for (authority_index, _authority_info) in committee.authorities() {
-            // Introduce a non-trivial clock drift for the first node (it's time will be ahead of the others). This will provide extra reassurance
-            // around the block timestamp checks.
+            // Introduce clock drifts for the first three nodes (their time will be ahead of the others).
+            // This will provide extra reassurance around the block timestamp checks.
             let config = Config {
                 authority_index,
                 db_dir: Arc::new(TempDir::new().unwrap()),
@@ -204,76 +201,64 @@ mod test {
             authorities.push(node);
         }
 
-        let transaction_clients_clone = transaction_clients.clone();
-        let total_sequenced_transactions = Arc::new(AtomicU64::new(0));
-        let total_garbage_collected_transactions = Arc::new(AtomicU64::new(0));
+        let mut join_set = JoinSet::new();
+        let mut transaction_index = 0;
 
-        let total_sequenced_transactions_cloned = total_sequenced_transactions.clone();
-        let total_garbage_collected_transactions_cloned =
-            total_garbage_collected_transactions.clone();
+        loop {
+            // randomly decide the number of transactions to submit. We are taking advantage of the batching capabilities of transaction client to
+            // make sure that we submit more than one transaction per block.
+            let num_of_transactions = rand::thread_rng().gen_range(0..=MAX_TRANSACTIONS_BATCH_SIZE);
+            let transaction_indexes_range =
+                transaction_index..transaction_index + num_of_transactions;
+            let mut transactions = vec![];
 
-        let handle = tokio::spawn(async move {
-            let mut join_set = JoinSet::new();
-            let mut transaction_index = 0;
+            for i in transaction_indexes_range.clone() {
+                transactions.push(vec![i as u8; 16]);
+                transaction_index += 1;
+            }
 
-            loop {
-                // randomly decide the number of transactions to submit. We are taking advantage of the batching capabilities of transaction client to
-                // make sure that we submit more than one transaction per block.
-                let num_of_transactions = rand::thread_rng().gen_range(1..=TRANSACTIONS_BATCH_SIZE);
-                let transaction_indexes_range =
-                    transaction_index..transaction_index + num_of_transactions;
-                let mut transactions = vec![];
+            let index =
+                (transaction_index - num_of_transactions) as usize % transaction_clients.len();
+            let (_block_ref, _indexes, status_waiter) = transaction_clients[index]
+                .submit(transactions)
+                .await
+                .unwrap();
 
-                for i in transaction_indexes_range.clone() {
-                    transactions.push(vec![i as u8; 16]);
-                    transaction_index += 1;
-                }
+            let total_sequenced_transactions = total_sequenced_transactions.clone();
+            let total_garbage_collected_transactions = total_garbage_collected_transactions.clone();
 
-                let index = (transaction_index - num_of_transactions) as usize
-                    % transaction_clients_clone.len();
-                let (_block_ref, _indexes, status_waiter) = transaction_clients_clone[index]
-                    .submit(transactions)
-                    .await
-                    .unwrap();
-
-                let total_sequenced_transactions = total_sequenced_transactions_cloned.clone();
-                let total_garbage_collected_transactions =
-                    total_garbage_collected_transactions_cloned.clone();
-
-                join_set.spawn(async move {
-                    match status_waiter.await {
-                        Ok(BlockStatus::Sequenced(_)) => {
-                            // Just increment the transaction count
-                            total_sequenced_transactions.fetch_add(1, Ordering::SeqCst);
-                        }
-                        Ok(BlockStatus::GarbageCollected(_)) => {
-                            total_garbage_collected_transactions.fetch_add(1, Ordering::SeqCst);
-                        }
-                        Err(e) => {
-                            panic!(
-                                "Transactions in range {:?} failed with error: {e}",
-                                transaction_indexes_range
-                            );
-                        }
+            join_set.spawn(async move {
+                match status_waiter.await {
+                    Ok(BlockStatus::Sequenced(_)) => {
+                        // Just increment the transaction count
+                        total_sequenced_transactions
+                            .fetch_add(num_of_transactions, Ordering::SeqCst);
                     }
-                });
-
-                sleep(Duration::from_millis(2)).await;
-
-                // Exit when we have submitted the defined number of transactions.
-                if transaction_index as u16 >= NUM_TRANSACTIONS {
-                    break;
+                    Ok(BlockStatus::GarbageCollected(_)) => {
+                        total_garbage_collected_transactions
+                            .fetch_add(num_of_transactions, Ordering::SeqCst);
+                    }
+                    Err(e) => {
+                        panic!(
+                            "Transactions in range {:?} failed with error: {e}",
+                            transaction_indexes_range
+                        );
+                    }
                 }
-            }
+            });
 
-            while let Some(result) = join_set.join_next().await {
-                result.unwrap();
+            sleep(Duration::from_millis(rand::thread_rng().gen_range(0..100))).await;
+
+            // Exit when we have submitted the defined number of transactions.
+            if transaction_index as u16 >= NUM_TRANSACTIONS {
+                break;
             }
-        });
+        }
 
         // wait for the transactions to be submitted and then some additional time to ensure that the transactions are committed.
-        handle.await.unwrap();
-        sleep(Duration::from_secs(3)).await;
+        while let Some(result) = join_set.join_next().await {
+            result.unwrap();
+        }
 
         // Store all the commit consumers
         let mut commit_consumer_receivers = vec![];
@@ -294,7 +279,7 @@ mod test {
             for authority_index in 0..NUM_OF_AUTHORITIES {
                 tracing::trace!("Waiting for sub dag from authority {authority_index}");
                 if let Some(sub_dag) = timeout(
-                    Duration::from_secs(10),
+                    Duration::from_secs(90),
                     commit_consumer_receivers[authority_index].recv(),
                 )
                 .await
@@ -340,14 +325,13 @@ mod test {
                 .map(|block| block.transactions().len())
                 .sum::<usize>();
 
-            tracing::info!("Transaction count: {}", transaction_count);
-
             // Exit when we have confirmed that all the sequenced transactions have been processed.
             if transaction_count as u64 >= total_sequenced_transactions.load(Ordering::SeqCst) {
                 break;
             }
         }
 
+        tracing::info!("Total committed transactions: {}", transaction_count);
         tracing::info!(
             "Total sequenced transactions: {}",
             total_sequenced_transactions.load(Ordering::SeqCst)
