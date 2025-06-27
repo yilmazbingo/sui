@@ -111,9 +111,9 @@ public fun new(
         epoch,
         epoch_timestamp_ms,
         ids_created,
-        native_rgp(),
-        native_gas_price(),
-        native_gas_budget(),
+        600, // rgp
+        700, // gas price
+        1_000_000_000_000, // budget
         native_sponsor(),
     );
     // return an empty TxContext given all the info is held on the native side (call above)
