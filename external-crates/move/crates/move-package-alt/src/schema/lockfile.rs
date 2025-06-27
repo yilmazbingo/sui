@@ -9,7 +9,8 @@ use toml_edit::{
 use crate::flavor::MoveFlavor;
 
 use super::{
-    EnvironmentID, EnvironmentName, LocalDepInfo, OnChainDepInfo, PackageName, shared::ser_account,
+    EnvironmentID, EnvironmentName, GitSha, LocalDepInfo, OnChainDepInfo, PackageName,
+    shared::ser_account,
 };
 use move_core_types::account_address::AccountAddress;
 

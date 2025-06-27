@@ -7,4 +7,4 @@ mod resolver;
 mod sha;
 mod shared;
 
-pub use {lockfile::*, manifest::*, published_info::*, resolver::*, shared::*};
+pub use {lockfile::*, manifest::*, published_info::*, resolver::*, sha::*, shared::*};
