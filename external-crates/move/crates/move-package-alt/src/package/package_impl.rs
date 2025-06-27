@@ -17,7 +17,7 @@ use crate::{
     dependency::{DependencySet, PinnedDependencyInfo, pin},
     errors::{PackageError, PackageResult},
     flavor::MoveFlavor,
-    schema::{LocalDepInfo, LockfileDependencyInfo, Pin},
+    schema::{LocalDepInfo, LockfileDependencyInfo, Pin, Publication},
 };
 use move_core_types::identifier::Identifier;
 use tracing::{debug, info};
@@ -94,6 +94,10 @@ impl<F: MoveFlavor> Package<F> {
     /// A dependency that points to this package.
     pub fn dep_for_self(&self) -> &LockfileDependencyInfo {
         &self.source
+    }
+
+    pub fn publication(&self, env: &EnvironmentName) -> Option<Publication<F>> {
+        todo!()
     }
 
     /// The resolved and pinned dependencies from the manifest for environment `env`

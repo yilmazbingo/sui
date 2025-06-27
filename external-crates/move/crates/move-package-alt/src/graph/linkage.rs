@@ -8,12 +8,13 @@ use move_core_types::account_address::AccountAddress;
 use petgraph::{
     algo::{Cycle, toposort},
     graph::{DiGraph, NodeIndex},
+    visit::{EdgeRef, NodeRef},
 };
 use thiserror::Error;
 
 use crate::{
     flavor::MoveFlavor,
-    package::{Package, PackageName},
+    package::{EnvironmentName, Package, PackageName},
     schema::Address,
 };
 
@@ -39,8 +40,7 @@ pub type LinkageTable<F> = BTreeMap<AccountAddress, Package<F>>;
 impl<F: MoveFlavor> PackageGraph<F> {
     /// Construct and return a linkage table for the root package of `self`
     pub fn linkage(&self) -> LinkageResult<LinkageTable<F>> {
-        let sorted =
-            toposort(&self.inner, None).map_err(|cycle| LinkageError::CyclicDependencies(cycle))?;
+        let sorted = toposort(&self.inner, None).map_err(LinkageError::CyclicDependencies)?;
 
         let mut linkages: BTreeMap<NodeIndex, LinkageTable<F>> = BTreeMap::new();
         for node in sorted.iter().rev() {
@@ -53,8 +53,22 @@ impl<F: MoveFlavor> PackageGraph<F> {
             .expect("all linkages have been computed"))
     }
 
-    fn overrides(&self, node: NodeIndex) -> BTreeSet<Address> {
-        todo!()
+    /// Returns the original IDs of the packages that are overridden in `node`
+    fn overrides(&self, env: &EnvironmentName, node: NodeIndex) -> BTreeSet<Address> {
+        let overrides: BTreeSet<PackageName> = self.inner[node]
+            .package
+            .direct_deps(env)
+            .unwrap()
+            .into_iter()
+            .filter_map(|(name, dep)| if dep.is_override() { Some(name) } else { None })
+            .collect();
+
+        self.inner
+            .edges(node)
+            .filter(|edge| overrides.contains(edge.weight()))
+            .map(|edge| self.inner[edge.target()].package.clone())
+            .map(|package| package.publication(env).expect("TODO").original_id)
+            .collect()
     }
 }
 
