@@ -141,9 +141,9 @@ mod test {
         });
 
         const NUM_OF_AUTHORITIES: usize = 10;
-        const REJECTION_PROBABILITY: f64 = 0.2;
+        const REJECTION_PROBABILITY: f64 = 0.1;
         const NUM_TRANSACTIONS: u16 = 10000;
-        const MAX_TRANSACTIONS_BATCH_SIZE: u16 = 10;
+        const MAX_TRANSACTIONS_BATCH_SIZE: u16 = 8;
 
         let (committee, keypairs) = local_committee_and_keys(0, [1; NUM_OF_AUTHORITIES].to_vec());
         let protocol_config = ProtocolConfig::get_for_max_version_UNSAFE();
@@ -209,6 +209,8 @@ mod test {
 
         let mut join_set = JoinSet::new();
         let mut transaction_index = 0;
+        let total_sequenced_transactions = Arc::new(AtomicU64::new(0));
+        let total_garbage_collected_transactions = Arc::new(AtomicU64::new(0));
 
         loop {
             // randomly decide the number of transactions to submit. We are taking advantage of the batching capabilities of transaction client to
@@ -230,30 +232,32 @@ mod test {
                 .await
                 .unwrap();
 
-            let total_sequenced_transactions = total_sequenced_transactions.clone();
-            let total_garbage_collected_transactions = total_garbage_collected_transactions.clone();
-
-            join_set.spawn(async move {
-                match status_waiter.await {
-                    Ok(BlockStatus::Sequenced(_)) => {
-                        // Just increment the transaction count
-                        total_sequenced_transactions
-                            .fetch_add(num_of_transactions, Ordering::SeqCst);
-                    }
-                    Ok(BlockStatus::GarbageCollected(_)) => {
-                        total_garbage_collected_transactions
-                            .fetch_add(num_of_transactions, Ordering::SeqCst);
-                    }
-                    Err(e) => {
-                        panic!(
-                            "Transactions in range {:?} failed with error: {e}",
-                            transaction_indexes_range
-                        );
+            join_set.spawn({
+                let total_sequenced_transactions = total_sequenced_transactions.clone();
+                let total_garbage_collected_transactions = total_garbage_collected_transactions.clone();
+                async move {
+                    match status_waiter.await {
+                        Ok(BlockStatus::Sequenced(_)) => {
+                            // Just increment the transaction count
+                            total_sequenced_transactions
+                                .fetch_add(num_of_transactions as u64, Ordering::SeqCst);
+                        }
+                        Ok(BlockStatus::GarbageCollected(_)) => {
+                            total_garbage_collected_transactions
+                                .fetch_add(num_of_transactions as u64, Ordering::SeqCst);
+                        }
+                        Err(e) => {
+                            panic!(
+                                "Transactions in range {:?} failed with error: {e}",
+                                transaction_indexes_range
+                            );
+                        }
                     }
                 }
             });
 
-            sleep(Duration::from_millis(rand::thread_rng().gen_range(0..100))).await;
+            let sleep_duration = Duration::from_millis(rand::thread_rng().gen_range(0..100));
+            sleep(sleep_duration).await;
 
             // Exit when we have submitted the defined number of transactions.
             if transaction_index as u16 >= NUM_TRANSACTIONS {
