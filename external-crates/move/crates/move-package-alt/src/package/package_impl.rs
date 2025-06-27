@@ -2,19 +2,12 @@
 // Copyright (c) The Move Contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{
-    collections::BTreeMap,
-    fmt::{self, Debug},
-    marker::PhantomData,
-    path::{Path, PathBuf},
-};
-
-use serde::{Deserialize, Serialize};
+use std::{collections::BTreeMap, path::Path};
 
 use super::manifest::Manifest;
 use super::paths::PackagePath;
 use crate::{
-    dependency::{DependencySet, PinnedDependencyInfo, pin},
+    dependency::{PinnedDependencyInfo, pin},
     errors::{PackageError, PackageResult},
     flavor::MoveFlavor,
     package::lockfile::Lockfiles,
