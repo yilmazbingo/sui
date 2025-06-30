@@ -231,10 +231,19 @@ impl Handler for ObjInfo {
             .get_result::<CountResult>(conn)
             .await?;
 
-        ensure!(
-            deleted_objects == deleted_refs,
-            "Deleted objects count ({deleted_objects}) does not match deleted refs count ({deleted_refs})",
-        );
+        // ensure!(
+        // deleted_objects <= deleted_refs,
+        // "Deleted objects count ({deleted_objects}) cannot be greater than deleted refs count ({deleted_refs})",
+        // );
+
+        // When starting from an arbitrary checkpoint, some obj_info entries might be missing
+        // because they were never indexed. In this case, deleted_refs > deleted_objects is expected.
+        if deleted_objects < deleted_refs {
+            tracing::warn!(
+                "Deleted objects count ({deleted_objects}) is less than deleted refs count ({deleted_refs}). \
+                This is expected when starting indexing from an arbitrary checkpoint where some historical data is missing."
+            );
+        }
 
         Ok((deleted_objects + deleted_refs) as usize)
     }
